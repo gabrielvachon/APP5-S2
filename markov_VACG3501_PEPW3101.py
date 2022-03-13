@@ -22,9 +22,11 @@
     Copyright 2018-2022, F. Mailhot et Université de Sherbrooke
 """
 
+import argparse
 import os
 import glob
 import ntpath
+
 
 class markov():
     """Classe à utiliser pour coder la solution à la problématique:
@@ -42,7 +44,7 @@ class markov():
 
     # Le code qui suit est fourni pour vous faciliter la vie.  Il n'a pas à être modifié
     # Signes de ponctuation à retirer (compléter la liste qui ne comprend que "!" et "," au départ)
-    PONC = ["!", ",", ".", "-", ":", ";", "?", "«", "»", "(", ")", "[", "]", "{", "}", "…", "/", "'", "*", "<", ">", "&", "~", "–", "„", "“", "‚", "‘", "“", "”", "‘", "’", "\n"]
+    PONC = ["!", ",", ".", "-", ":", ";", "?", "«", "»", "(", ")", "[", "]", "{", "}", "…", "/", "'", "*", "<", ">", "&", "~", "–", "„", "“", "‚", "‘", "“", "”", "‘", "’", "\n", "—", "_"]
 
     def set_ponc(self, value):
         """Détermine si les signes de ponctuation sont conservés (True) ou éliminés (False)
@@ -107,7 +109,6 @@ class markov():
         self.set_auteurs()
         return
 
-
     def set_ngram(self, ngram):
         """Indique que l'analyse et la génération de texte se fera avec des n-grammes de taille ngram
 
@@ -133,6 +134,7 @@ class markov():
         self.keep_ponc = True
         self.rep_aut = os.getcwd()
         self.auteurs = []
+        self.analyze_all_auteurs = True
         self.ngram = 1
 
         # Au besoin, ajouter votre code d'initialisation de l'objet de type markov lors de sa création
@@ -158,8 +160,8 @@ class markov():
             resultats (Liste[(string,float)]) : Liste de tuples (auteurs, niveau de proximité), où la proximité est un nombre entre 0 et 1)
         """
 
-        resultats = [("balzac", 0.1234), ("voltaire", 0.1123)]   # Exemple du format des sorties
-
+        # Exemple du format des sorties
+        resultats = [("balzac", 0.1234), ("voltaire", 0.1123)]
 
         # Ajouter votre code pour déterminer la proximité du fichier passé en paramètre avec chacun des auteurs
         # Retourner la liste des auteurs, chacun avec sa proximité au fichier inconnu
@@ -198,7 +200,6 @@ class markov():
         ngram = [['un', 'roman']]   # Exemple du format de sortie d'un bigramme
         return ngram
 
-
     def analyze(self):
         """Fait l'analyse des textes fournis, en traitant chaque oeuvre de chaque auteur
 
@@ -208,18 +209,143 @@ class markov():
         Returns:
             void : ne retourne rien, toute l'information extraite est conservée dans des strutures internes
         """
+        if self.analyze_all_auteurs:
+            self.set_auteurs()
+        else:
+            self.auteurs.append(self.auteur)
 
-        # Ajouter votre code ici pour traiter l'ensemble des oeuvres de l'ensemble des auteurs
-        # Pour l'analyse:  faire le calcul des fréquences de n-grammes pour l'ensemble des oeuvres
-        #   d'un certain auteur, sans distinction des oeuvres individuelles,
-        #       et recommencer ce calcul pour chacun des auteurs
-        #   En procédant ainsi, les oeuvres comprenant plus de mots auront un impact plus grand sur
-        #   les statistiques globales d'un auteur
-        # Il serait possible de considérer chacune des oeuvres d'un auteur comme ayant un poids identique.
-        #   Pour ce faire, il faudrait faire les calculs de fréquence pour chacune des oeuvres
-        #       de façon indépendante, pour ensuite les normaliser (diviser chaque vecteur par sa norme),
-        #       avant des les additionner pour obtenir le vecteur global d'un auteur
-        #   De cette façon, les mots d'un court poème auraient une importance beaucoup plus grande que
-        #   les mots d'une très longue oeuvre du même auteur. Ce n'est PAS ce qui vous est demandé ici.
+        auteurs = []
+        for auteur in self.auteurs:
+            print(auteur)
+            auteur = {"nom": auteur, "mots": {}}
+
+            oeuvres = self.get_aut_files(auteur["nom"])
+
+            for oeuvre in oeuvres:
+                print(oeuvre)
+                auteur["mots"].update(self.get_freq_mots(oeuvre))
+            auteurs.append(auteur)
+
+                # Ajouter votre code ici pour traiter l'ensemble des oeuvres de l'ensemble des auteurs
+                # Pour l'analyse:  faire le calcul des fréquences de n-grammes pour l'ensemble des oeuvres
+                # d'un certain auteur, sans distinction des oeuvres individuelles,
+                # et recommencer ce calcul pour chacun des auteurs
+                # En procédant ainsi, les oeuvres comprenant plus de mots auront un impact plus grand sur
+                # les statistiques globales d'un auteur
 
         return
+
+    def get_freq_mots(self, oeuvre):
+        """Retourne une dictionnaire de la fréquence des mors dans l'oeuvre
+
+        Args:
+            Oeuvre: L'oeuvre dans lequel on veut compter les mots
+
+        Returns:
+            Mots : Retourne un dictionnaire contenant les mots (clé) ainsi que la fréquence (valeur) d'un chacun.
+        """
+        mots = {}
+        if oeuvre.endswith(".txt"):  # Vérification de l'extension du fichier
+            f = open(oeuvre, "r")  # Ouverture du fichier
+            textContent = f.read().lower().split()  # Lecture du fichier et séparation de chaque mot (séparé par : espace)
+
+            if not self.keep_ponc:  # Si le mode sans ponctuation est activé (noPonc) on repasse sur tous les mots et on
+                # vérifie s'il a un caractère parmis le tableau PONC
+                formatStr = ""  # Chaîne temporaire qui sevira à remettre tout les mots sans ponctuation pour les
+                # re-séparer (permet d'éviter d'avoir des indexs possédants des espaces)
+                index = 0
+                while index != len(textContent):  # Pour tout les mots dans le texte
+                    for character in textContent[index]:  # Pour chaque caractère dans le texte
+                        for ponctuation in self.PONC:  # Vérifier si le caractère en est un dans le tableau PONC
+                            if character == ponctuation:  # Si caractère est caractère ponctué
+                                textContent[index] = textContent[index].replace(character,
+                                                                                ' ')  # Remplace par un espace
+                    formatStr += textContent[index] + " "  # Ajout du mot formatté dans la chaîne temporaire
+                    index = index + 1
+                textContent = formatStr.split()  # Re-séparation des mots dans la liste
+
+            index = 0
+            # Boucle qui permet d'enlever tous les mots de deux caractères et moins
+            while index < len(textContent):  # Pour chaque mot dans le tableau
+                if len(textContent[index]) <= 2:  # Si taille du mot < 2
+                    textContent.pop(index)  # Retrait du mot
+                index = index + 1
+
+            index = 0
+            # Boucle permettant de placer les éléments dans le dictionnaire, permet aussi de compter chaque mot
+            while index != len(textContent):  # Pour chaque mot dans le tableau
+                if textContent[index] in mots:  # Si la clé existe déjà dans le dictionnaire
+                    mots.update({textContent[index]: mots.get(textContent[index]) + 1})  # Mise à jour du nombre de
+                    # répétition du mot pour cette clé
+                else:
+                    mots.update({textContent[index]: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
+                index = index + 1
+
+        print(mots)
+        return mots
+
+    def setup_and_parse_cli(self, args):
+        """Utilise le module argparse pour:
+            - Enregistrer les commandes à reconnaître
+            - Lire la ligne de commande et créer le champ args qui récupère la structure produite
+
+        Returns:
+            void: Au retour, toutes les commandes reconnues sont comprises dans args
+        """
+        if args.d:
+            self.rep_aut = args.d
+
+        if args.m:
+            self.ngram = args.m
+
+        if args.a:
+            self.auteur = args.a
+            self.analyze_all_auteurs = False
+
+        if args.A:
+            self.analyze_all_auteurs = True
+
+        if args.f:
+            self.oeuvre = args.f
+            self.do_analyze = True
+
+        if args.F:
+            self.do_get_nth_ngram = True
+            self.nth_ngram = args.F
+
+        if args.g:
+            self.gen_basename = args.g
+            self.gen_text = True
+
+        if args.G:
+            self.gen_size = args.G
+            self.gen_text = True
+
+        self.set_ponc(False)
+
+        return
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-d', default='.', help="Répertoire : Pour indiquer le répertoire dans lequel se trouvent les sous-répertoires de chacun des auteurs à traiter.")
+    parser.add_argument(
+        '-a', help="Auteur : Pour indiquer que l'analyse se fera sur les textes de cet auteur.")
+    parser.add_argument(
+        '-A', help="Pour indiquer que l'analyse se fera sur le textes de tous les auteurs.")
+    parser.add_argument(
+        '-m', default=1, type=int, choices=range(1, 2), help="N-grammes : Pour faire le calcul avec des n-grammes de mots.")
+    parser.add_argument(
+        '-f', help="Fichier : Pour indiquer un fichier de texte à comparer.")
+    parser.add_argument(
+        '-F', type=int, help="Afficher l'élément le plus fréquent.")
+    parser.add_argument(
+        '-g', default='Gen_text', help='Nom de base du fichier de texte à générer')
+    parser.add_argument(
+        '-G', default=1000, type=int, help="Nombre : Produit un texte aléatoire de n mot pour chaque auteur.")
+    args = parser.parse_args()
+
+    m = markov()
+    m.setup_and_parse_cli(args)
+    m.analyze()
