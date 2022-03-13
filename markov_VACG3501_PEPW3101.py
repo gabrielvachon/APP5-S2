@@ -23,7 +23,6 @@
 """
 
 import argparse
-import fileinput
 import math
 import os
 import glob
@@ -147,15 +146,17 @@ class markov():
         # Initialisation des champs nécessaires aux fonctions fournies
         self.keep_ponc = True
         self.rep_aut = os.getcwd()
+        self.oeuvre = ""
+        self.auteur = ""
         self.auteurs = []
         self.analyze_all_auteurs = True
         self.ngram = 1
         self.do_analyze = False
         self.do_gen_text = False
+        self.do_get_nth_ngram = False
+        self.nth_ngram = 1
         self.gen_basename = "Gen_text"
         self.gen_size = 1000
-
-        # Au besoin, ajouter votre code d'initialisation de l'objet de type markov lors de sa création
 
         return
 
@@ -186,8 +187,6 @@ class markov():
         for auteur in self.auteurs:
             auteur["mots"] = normalize(auteur["mots"])
 
-            # Ajoute chaque clé non existante dans l'oeuvre à analyser
-
             vec_auteur = np.empty(len(vec_oeuvre))
             i = 0
             for key in freq_mots_oeuvre:
@@ -195,21 +194,9 @@ class markov():
                     vec_auteur[i] = (auteur["mots"][key])
                     i += 1
 
-            value = np.dot(vec_oeuvre, vec_auteur)
+            value = format(np.dot(vec_oeuvre, vec_auteur), ".4f")
 
-            resultats.append({auteur["nom"]: value})
-
-        # Exemple du format des sorties
-        # resultats = [("balzac", 0.1234), ("voltaire", 0.1123)]
-
-        # Ajouter votre code pour déterminer la proximité du fichier passé en paramètre avec chacun des auteurs
-        # Retourner la liste des auteurs, chacun avec sa proximité au fichier inconnu
-        # Plus la proximité est grande, plus proche l'oeuvre inconnue est des autres écrits d'un auteur
-        #   Le produit scalaire entre le vecteur représentant les oeuvres d'un auteur
-        #       et celui associé au texte inconnu pourrait s'avérer intéressant...
-        #   Le produit scalaire devrait être normalisé avec la taille du vecteur associé au texte inconnu:
-        #   proximité = (A . B) / (|A| |B|)   où A est le vecteur du texte inconnu et B est celui d'un auteur,
-        #           . est le produit scalaire, et |X| est la norme (longueur) du vecteur X
+            resultats.append((auteur["nom"], value))
 
         return resultats
 
@@ -224,23 +211,21 @@ class markov():
         Returns:
             void : ne retourne rien, le texte produit doit être écrit dans le fichier "textname"
         """
-        # faire une list de range des arrays (ou les keys)
-        # faire une liste des values pour les poids
+
         mots_auteur = {}
         for a in self.auteurs:
             if a["nom"] == auteur:
                 mots_auteur = a["mots"]
         if mots_auteur is None:
             return
-        generatedText = random.choices(list(mots_auteur.keys()), list(mots_auteur.values()), k=taille)
+        generated_text = random.choices(list(mots_auteur.keys()), list(mots_auteur.values()), k=taille)
 
-        file = open(auteur + "_" + textname + ".txt", "w")
-        file.write(auteur + " :: Début:")
-        for word in generatedText:
+        file = open(textname, "w")
+        file.write(auteur + " :: Début: ")
+        for word in generated_text:
             file.write(word + " ")
         file.write(":: Fin")
         file.close()
-
         return
 
     def get_nth_element(self, auteur, n):
@@ -253,8 +238,29 @@ class markov():
         Returns:
             ngram (List[Liste[string]]) : Liste de liste de mots composant le n-gramme recherché (il est possible qu'il y ait plus d'un n-gramme au même rang)
         """
-        ngram = [['un', 'roman']]  # Exemple du format de sortie d'un bigramme
+
+        mots_auteur = {}
+        for a in self.auteurs:
+            if a["nom"] == auteur:
+                mots_auteur = a["mots"]
+        if mots_auteur is None:
+            return
+
+        values = sorted(set(mots_auteur.values()))
+
+        index = len(values) - n
+        if index < 0:
+            index = 0
+
+        value = values[index]
+
+        ngram = []
+        for key in mots_auteur.keys():
+            if mots_auteur[key] == value:
+                ngram.append(key)
+
         return ngram
+        # ngram = [['un', 'roman']]  # Exemple du format de sortie d'un bigramme
 
     def analyze(self):
         """Fait l'analyse des textes fournis, en traitant chaque oeuvre de chaque auteur
@@ -272,17 +278,20 @@ class markov():
 
         auteurs = []
         for auteur in self.auteurs:
-            print(auteur)
             auteur = {"nom": auteur, "mots": {}}
 
             oeuvres = self.get_aut_files(auteur["nom"])
 
             for oeuvre in oeuvres:
-                print(oeuvre)
                 auteur["mots"].update(self.get_freq_mots(oeuvre))
             auteurs.append(auteur)
 
         self.auteurs = auteurs
+
+        if self.do_get_nth_ngram:
+            for auteur in self.auteurs:
+                ngram = self.get_nth_element(auteur["nom"], self.nth_ngram)
+                print(ngram)
 
         if self.do_analyze:
             resultats = self.find_author(self.oeuvre)
@@ -290,14 +299,9 @@ class markov():
 
         if self.do_gen_text:
             for auteur in self.auteurs:
-                self.gen_text(auteur["nom"], self.gen_size, self.gen_basename)
+                self.gen_text(auteur["nom"], self.gen_size, auteur["nom"] + "_" + self.gen_basename + ".txt")
 
-            # Ajouter votre code ici pour traiter l'ensemble des oeuvres de l'ensemble des auteurs
-            # Pour l'analyse:  faire le calcul des fréquences de n-grammes pour l'ensemble des oeuvres
-            # d'un certain auteur, sans distinction des oeuvres individuelles,
-            # et recommencer ce calcul pour chacun des auteurs
-            # En procédant ainsi, les oeuvres comprenant plus de mots auront un impact plus grand sur
-            # les statistiques globales d'un auteur
+
 
         return
 
@@ -354,7 +358,6 @@ class markov():
                     mots.update({textContent[index]: 1})
                 index = index + 1
 
-        print(mots)
         return mots
 
     def setup_and_parse_cli(self, args):
