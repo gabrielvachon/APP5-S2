@@ -2,12 +2,14 @@ import os
 import glob
 import ntpath
 
-PONC = ["!", ",", ".", "-", ":", ";", "?", "«", "»", "(", ")", "[", "]", "{", "}", "…", "/", "'", "*", "<", ">", "&",
-        "~", "–", "„", "“", "‚", "‘", "“", "”", "‘", "’", "\n"]
+PONC = ["!", ",", ".", "-", ":", ";", "?", "«", "»", "(", ")", "[", "]", "{", "}", "…", "/", "'", "*", "<", ">",
+        "&", "~", "–", "„", "“", "‚", "‘", "“", "”", "‘", "’", "\n", "—", "_", "\xa0", "    "]
 
 dict = {}
+xgram = 3
+indexToAdd = xgram - 1
 noPonc = True
-author = "zola"
+author = "Zola"
 directory = "TextesPourEtudiants"
 textsPath = directory + "/" + author + "/"  # Chemin des textes de l'auteur
 
@@ -21,7 +23,7 @@ for file in os.listdir(textsPath):  # Pour chaque texte dans le répertoire
             formatStr = ""  # Chaîne temporaire qui sevira à remettre tout les mots sans ponctuation pour les
             # re-séparer (permet d'éviter d'avoir des indexs possédants des espaces)
             index = 0
-            while index != len(textContent):  # Pour tout les mots dans le texte
+            while index < len(textContent):  # Pour tout les mots dans le texte
                 for character in textContent[index]:  # Pour chaque caractère dans le texte
                     for ponctuation in PONC:  # Vérifier si le caractère en est un dans le tableau PONC
                         if character == ponctuation:  # Si caractère est caractère ponctué
@@ -32,18 +34,36 @@ for file in os.listdir(textsPath):  # Pour chaque texte dans le répertoire
 
         index = 0
         # Boucle qui permet d'enlever tous les mots de deux caractères et moins
-        while index != len(textContent):  # Pour chaque mot dans le tableau
+        while index < len(textContent):  # Pour chaque mot dans le tableau
             if len(textContent[index]) <= 2:  # Si taille du mot < 2
                 textContent.pop(index)  # Retrait du mot
-            index = index + 1
+            else:
+                index = index + 1
 
         index = 0
         # Boucle permettant de placer les éléments dans le dictionnaire, permet aussi de compter chaque mot
-        while index != len(textContent):  # Pour chaque mot dans le tableau
-            if textContent[index] in dict:  # Si la clé existe déjà dans le dictionnaire
-                dict.update({textContent[index]: dict.get(textContent[index]) + 1})  # Mise à jour du nombre de
-                # répétition du mot pour cette clé
+        while index < len(textContent):  # Pour chaque mot dans le tableau
+            if xgram == 1:
+                if textContent[index] in dict:  # Si la clé existe déjà dans le dictionnaire
+                    dict.update({textContent[index]: dict.get(textContent[index]) + 1})  # Mise à jour du nombre de
+                    # répétition du mot pour cette clé
+                else:
+                    dict.update({textContent[index]: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
             else:
-                dict.update({textContent[index]: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
+                wordListGram = ""
+                wordIndex = 0
+                while wordIndex < xgram:
+                    if (index + xgram) <= len(textContent):
+                        if wordIndex < indexToAdd:
+                            wordListGram = wordListGram + textContent[index + wordIndex] + " "
+                        else:
+                            wordListGram = wordListGram + textContent[index + wordIndex]
+                    wordIndex = wordIndex + 1
+                if wordListGram != "":
+                    if wordListGram in dict:  # Si la clé existe déjà dans le dictionnaire
+                        dict.update({wordListGram: dict.get(wordListGram) + 1})  # Mise à jour du nombre de
+                        # répétition du mot pour cette clé
+                    else:
+                        dict.update({wordListGram: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
             index = index + 1
 print(dict)
