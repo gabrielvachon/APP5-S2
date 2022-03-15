@@ -301,8 +301,6 @@ class markov():
             for auteur in self.auteurs:
                 self.gen_text(auteur["nom"], self.gen_size, auteur["nom"] + "_" + self.gen_basename + ".txt")
 
-
-
         return
 
     def get_freq_mots(self, oeuvre):
@@ -315,6 +313,8 @@ class markov():
             Mots : Retourne un dictionnaire contenant les mots (clé) ainsi que la fréquence (valeur) d'un chacun.
         """
         mots = {}
+        xgram = self.ngram
+        indexToAdd = xgram - 1
         if oeuvre.endswith(".txt"):  # Vérification de l'extension du fichier
             f = open(oeuvre, "r")  # Ouverture du fichier
             # Lecture du fichier et séparation de chaque mot (séparé par : espace)
@@ -326,7 +326,7 @@ class markov():
                 formatStr = ""  # Chaîne temporaire qui sevira à remettre tout les mots sans ponctuation pour les
                 # re-séparer (permet d'éviter d'avoir des indexs possédants des espaces)
                 index = 0
-                while index != len(textContent):  # Pour tout les mots dans le texte
+                while index < len(textContent):  # Pour tout les mots dans le texte
                     # Pour chaque caractère dans le texte
                     for character in textContent[index]:
                         for ponctuation in self.PONC:  # Vérifier si le caractère en est un dans le tableau PONC
@@ -347,17 +347,30 @@ class markov():
 
             index = 0
             # Boucle permettant de placer les éléments dans le dictionnaire, permet aussi de compter chaque mot
-            while index != len(textContent):  # Pour chaque mot dans le tableau
-                if textContent[index] in mots:  # Si la clé existe déjà dans le dictionnaire
-                    # Mise à jour du nombre de
-                    mots.update(
-                        {textContent[index]: mots.get(textContent[index]) + 1})
-                    # répétition du mot pour cette clé
+            while index < len(textContent):  # Pour chaque mot dans le tableau
+                if xgram == 1:
+                    if textContent[index] in mots:  # Si la clé existe déjà dans le dictionnaire
+                        mots.update({textContent[index]: mots.get(textContent[index]) + 1})  # Mise à jour du nombre de
+                        # répétition du mot pour cette clé
+                    else:
+                        mots.update({textContent[index]: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
                 else:
-                    # Mettre un nouveau mot au compte de 1 si pas existant
-                    mots.update({textContent[index]: 1})
+                    wordListGram = ""
+                    wordIndex = 0
+                    while wordIndex < xgram:
+                        if (index + xgram) <= len(textContent):
+                            if wordIndex < indexToAdd:
+                                wordListGram = wordListGram + textContent[index + wordIndex] + " "
+                            else:
+                                wordListGram = wordListGram + textContent[index + wordIndex]
+                        wordIndex = wordIndex + 1
+                    if wordListGram != "":
+                        if wordListGram in mots:  # Si la clé existe déjà dans le dictionnaire
+                            mots.update({wordListGram: mots.get(wordListGram) + 1})  # Mise à jour du nombre de
+                            # répétition du mot pour cette clé
+                        else:
+                            mots.update({wordListGram: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
                 index = index + 1
-
         return mots
 
     def setup_and_parse_cli(self, args):
@@ -401,7 +414,6 @@ class markov():
 
         return
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -412,7 +424,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '-A', help="Pour indiquer que l'analyse se fera sur le textes de tous les auteurs.")
     parser.add_argument(
-        '-m', default=1, type=int, choices=range(1, 2),
+        '-m', default=1, type=int, choices=range(1, 20),
         help="N-grammes : Pour faire le calcul avec des n-grammes de mots.")
     parser.add_argument(
         '-f', help="Fichier : Pour indiquer un fichier de texte à comparer.")
