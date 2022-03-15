@@ -35,7 +35,6 @@ def normalize(vecteur):
     norme = math.sqrt(sum([pow(value, 2) for value in vecteur.values()]))
     for key in vecteur.keys():
         vecteur[key] = vecteur[key] / norme
-
     return vecteur
 
 
@@ -192,7 +191,9 @@ class markov():
             for key in freq_mots_oeuvre:
                 if key in auteur["mots"]:
                     vec_auteur[i] = (auteur["mots"][key])
-                    i += 1
+                else:
+                    vec_auteur[i] = 0
+                i += 1
 
             value = format(np.dot(vec_oeuvre, vec_auteur), ".4f")
 
@@ -216,9 +217,10 @@ class markov():
         for a in self.auteurs:
             if a["nom"] == auteur:
                 mots_auteur = a["mots"]
-        if mots_auteur is None:
+        if len(mots_auteur) == 0:
             return
-        generated_text = random.choices(list(mots_auteur.keys()), list(mots_auteur.values()), k=taille)
+        generated_text = random.choices(
+            list(mots_auteur.keys()), list(mots_auteur.values()), k=taille)
 
         file = open(textname, "w")
         file.write(auteur + " :: Début: ")
@@ -299,7 +301,8 @@ class markov():
 
         if self.do_gen_text:
             for auteur in self.auteurs:
-                self.gen_text(auteur["nom"], self.gen_size, auteur["nom"] + "_" + self.gen_basename + ".txt")
+                self.gen_text(auteur["nom"], self.gen_size,
+                              auteur["nom"] + "_" + self.gen_basename + ".txt")
 
         return
 
@@ -349,27 +352,36 @@ class markov():
             # Boucle permettant de placer les éléments dans le dictionnaire, permet aussi de compter chaque mot
             while index < len(textContent):  # Pour chaque mot dans le tableau
                 if xgram == 1:
-                    if textContent[index] in mots:  # Si la clé existe déjà dans le dictionnaire
-                        mots.update({textContent[index]: mots.get(textContent[index]) + 1})  # Mise à jour du nombre de
+                    # Si la clé existe déjà dans le dictionnaire
+                    if textContent[index] in mots:
+                        # Mise à jour du nombre de
+                        mots.update(
+                            {textContent[index]: mots.get(textContent[index]) + 1})
                         # répétition du mot pour cette clé
                     else:
-                        mots.update({textContent[index]: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
+                        # Mettre un nouveau mot au compte de 1 si pas existant
+                        mots.update({textContent[index]: 1})
                 else:
                     wordListGram = ""
                     wordIndex = 0
                     while wordIndex < xgram:
                         if (index + xgram) <= len(textContent):
                             if wordIndex < indexToAdd:
-                                wordListGram = wordListGram + textContent[index + wordIndex] + " "
+                                wordListGram = wordListGram + \
+                                    textContent[index + wordIndex] + " "
                             else:
-                                wordListGram = wordListGram + textContent[index + wordIndex]
+                                wordListGram = wordListGram + \
+                                    textContent[index + wordIndex]
                         wordIndex = wordIndex + 1
                     if wordListGram != "":
                         if wordListGram in mots:  # Si la clé existe déjà dans le dictionnaire
-                            mots.update({wordListGram: mots.get(wordListGram) + 1})  # Mise à jour du nombre de
+                            # Mise à jour du nombre de
+                            mots.update(
+                                {wordListGram: mots.get(wordListGram) + 1})
                             # répétition du mot pour cette clé
                         else:
-                            mots.update({wordListGram: 1})  # Mettre un nouveau mot au compte de 1 si pas existant
+                            # Mettre un nouveau mot au compte de 1 si pas existant
+                            mots.update({wordListGram: 1})
                 index = index + 1
         return mots
 
@@ -413,6 +425,7 @@ class markov():
         self.set_ponc(False)
 
         return
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
