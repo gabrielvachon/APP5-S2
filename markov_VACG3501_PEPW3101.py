@@ -274,8 +274,10 @@ class markov():
             void : ne retourne rien, toute l'information extraite est conservée dans des strutures internes
         """
         if self.analyze_all_auteurs:
+            self.auteurs = []
             self.set_auteurs()
         else:
+            self.auteurs = []
             self.auteurs.append(self.auteur)
 
         auteurs = []
